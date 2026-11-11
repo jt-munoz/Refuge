@@ -1,6 +1,7 @@
 
-
-
+# STEP 1: IMPORT AND CLEAN PIT DATA ----
+# Mongolia Thermal Refuge Project | November 2026
+# Adapted from Chris Free
 
 # Read data
 ################################################################################
@@ -12,15 +13,11 @@ rm(list = ls())
 library(tidyverse)
 library(lubridate)
 
-# Install package
-# devtools::install_github("InStreamFisheries/PITR")
-# devtools::install_github("KevinSee/PITcleanr")
-# library(PITR)
-# library(PITcleanr)
 
 # Directory
-indir <- "/Users/cfree/Dropbox/Chris/UCSB/workshops/mongolia_2026/thermal_refuge/data/raw"
-outdir <- "/Users/cfree/Dropbox/Chris/UCSB/workshops/mongolia_2026/thermal_refuge/data/processed"
+indir <- "raw_pit"
+outdir <- "processed_pit"
+dir.create(outdir, showWarnings = FALSE)
 
 # Files
 files2merge <- list.files(indir)
@@ -55,12 +52,11 @@ data_orig <- purrr::map_df(files2merge, function(x){
     mutate(nitems=str_count(text, " ")+1) %>%
     # Reduce to only ones with 12 items
     filter(nitems==12) %>%
-    # Seprate
+    # Separate
     separate(col=text, sep=" ", into=column_names, remove=F) %>%
     # Add filename and arrange
     mutate(filename=filename) %>%
     select(filename, text, nitems, everything())
-
 
 })
 
@@ -107,42 +103,34 @@ data <- data_orig %>%
          read_type, read_strength, signal_strength, everything())
 
 # Inspect
-freeR::complete(data)
+#freeR::complete(data)
 str(data)
 
 # Date
 table(data$date)
 
 # Status
-# S seems good, T and 00 seem bad
 table(data$status)
 
-# Flag:
-# U seems good, others seem to mark problems
+# Flag
 table(data$flag)
 
 # Antenna group
-# A is good, others are problems
 table(data$antenna_group)
 
 # Antenna id
-# A1 or A2 are good, others are problems
 table(data$antenna_id)
 
 # Tag id
-# Ones with colons, hyphens, periods seem like problems
 table(data$tag_id)
 
 # Read type
-# REF seems good, others seem like problems
 table(data$read_type)
 
 # Read strength
-# Ones with colons or periods seem like problems
 table(data$read_strength)
 
 # Signal strength
-# Ones with colons or underscores seems like problems
 table(data$signal_strength)
 
 # Export
@@ -178,7 +166,7 @@ temp_orig <- purrr::map_df(files2merge, function(x){
     mutate(nitems=str_count(text, " ")+1) %>%
     # Reduce to only ones with 9 items
     filter(nitems==9) %>%
-    # Seprate
+    # Separate
     separate(col=text, sep=" ", into=temp_names, remove=F) %>%
     # Add filename and arrange
     mutate(filename=filename) %>%
@@ -212,12 +200,12 @@ temp <- temp_orig %>%
 
 # Inspect
 str(temp)
-freeR::complete(temp)
+#freeR::complete(temp)
 
 # Inspect individual
-table(temp$status) # T, S, 1
-table(temp$flag) # U
-table(temp$antenna_id) # A1 and A2
+table(temp$status)
+table(temp$flag)
+table(temp$antenna_id)
 table(temp$ms)
 table(temp$temp_c)
 
@@ -228,10 +216,8 @@ saveRDS(temp, file=file.path(outdir, "temp_data.Rds"))
 # Quick plot
 ggplot(temp, aes(x=datetime2, y=temp_c, color=antenna_id)) +
   geom_point() +
-  # Labels
   labs(x="Date", y="Temperature (°C)", color="Antenna") +
   scale_x_datetime(name="Date", date_breaks="day", date_labels="%b %d") +
-  # Theme
   theme_bw()
 
 
@@ -240,7 +226,6 @@ ggplot(temp, aes(x=datetime2, y=temp_c, color=antenna_id)) +
 
 # Subset to real data
 data1 <- data %>%
-  # Reduce to field data
   filter(date>=ymd("2026-07-20"))
 
 # Count by fish
@@ -261,32 +246,24 @@ nantenna <- data1 %>%
 # Count by fish
 g1 <- ggplot(nfish, aes(y=reorder(tag_id, desc(n)), x=n, fill=ndays)) +
   geom_bar(stat="identity") +
-  # Labels
   labs(x="Number of detections", y="Tag id") +
-  # scale_x_continuous(trans="log10") +
-  # Legend
   scale_fill_gradientn(name="# of days", colors=RColorBrewer::brewer.pal(9, "Spectral") %>% rev()) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black", frame.linewidth = 0.2)) +
-  # Theme
   theme_bw()
 g1
 
 # Count by date
 g2 <- ggplot(ndates, aes(x=date, y=n)) +
   geom_col() +
-  # Labels
   labs(x="Date", y="Number of detections") +
   scale_x_datetime(name="Date", date_breaks="day", date_labels="%b %d") +
-  # Theme
   theme_bw()
 g2
 
 # Count by antenna
 g3 <- ggplot(nantenna, aes(x=antenna_id, y=n)) +
   geom_col() +
-  # Labels
   labs(x="Antenna", y="Number of detections") +
-  # Theme
   theme_bw()
 g3
 
@@ -299,15 +276,8 @@ g4
 # Count by time of day
 g5 <- ggplot(data, aes(x=hour_of_day2)) +
   geom_histogram(binwidth = 0.1) +
-  # Labels
   labs(x="Hour day", y="Number of detections") +
   scale_x_continuous(breaks=seq(0,24, 1)) +
-  # Theme
   theme_bw()
 g5
-
-
-
-
-
 
